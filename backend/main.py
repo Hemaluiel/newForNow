@@ -110,7 +110,8 @@ def health():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 # Serve frontend 
-frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
+# frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
+frontend_path = os.path.dirname(os.path.abspath(__file__))
 if os.path.exists(frontend_path):
     @app.get("/")
     def serve_index():
