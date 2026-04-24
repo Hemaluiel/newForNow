@@ -1,13 +1,11 @@
 """
-Bank Statement Analyzer - FastAPI Backend (Google Gemini)
-
+Bank Statement Analyzer - FastAPI Backend (Groq)
 """
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import google.generativeai as genai
+from fastapi.responses import HTMLResponse
+from groq import Groq
 import pdfplumber
 import json
 import os
@@ -16,8 +14,8 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 
 #  Config 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "your-gemini-api-key-here")
-genai.configure(api_key=GEMINI_API_KEY)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "your-groq-key-here")
+client = Groq(api_key=GROQ_API_KEY)
 
 # App 
 @asynccontextmanager
@@ -57,10 +55,10 @@ async def analyze(file: UploadFile = File(...)):
     if len(text.strip()) < 50:
         raise HTTPException(400, "Could not extract text. Please use a text-based PDF (not a scanned image).")
 
-    # Gemini AI analysis 
+    # Groq AI analysis 
     prompt = f"""You are an expert bank statement analyzer. Analyze the following bank statement and identify ALL debit/expense transactions.
 
-Categorize them into groups such as: Food & Dining, Groceries, Transport, Utilities, Shopping, Entertainment, Celebrations and Gifts, Healthcare, Education, Rent/Housing, Insurance, Subscriptions, ATM Withdrawals, Transfers, Fuel, Travel, Other.
+Categorize them into groups such as: Food & Dining, Groceries, Transport, Utilities, Shopping, Entertainment, Healthcare, Education, Rent/Housing, Insurance, Subscriptions, ATM Withdrawals, Transfers, Fuel, Travel, Other.
 
 Return ONLY valid JSON, no markdown, no extra text:
 {{
@@ -89,9 +87,12 @@ Bank statement text (first 14000 chars):
 {text[:14000]}"""
 
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1500,
+        )
+        raw = response.choices[0].message.content.strip()
         raw = raw.replace("```json", "").replace("```", "").strip()
         result = json.loads(raw)
     except json.JSONDecodeError:
@@ -110,8 +111,6 @@ def health():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 # Serve frontend 
-from fastapi.responses import HTMLResponse
-
 @app.get("/")
 async def serve_index():
     with open("/app/index.html", "r") as f:
