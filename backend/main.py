@@ -110,11 +110,9 @@ def health():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 # Serve frontend 
-# frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
-frontend_path = os.path.dirname(os.path.abspath(__file__))
-if os.path.exists(frontend_path):
-    @app.get("/")
-    def serve_index():
-        return FileResponse(os.path.join(frontend_path, "index.html"))
+from fastapi.responses import HTMLResponse
 
-    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+@app.get("/")
+async def serve_index():
+    with open("/app/index.html", "r") as f:
+        return HTMLResponse(content=f.read())
