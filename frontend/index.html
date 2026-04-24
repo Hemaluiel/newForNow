@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinSight — Bank Statement Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:     #0f1117;
+  --ink-2:   #3a3d4a;
+  --ink-3:   #7a7e8e;
+  --paper:   #fafaf8;
+  --surface: #f3f2ee;
+  --border:  #e2e0d8;
+  --accent:  #1a472a;
+  --accent-l:#2d6a42;
+  --gold:    #b8860b;
+  --danger:  #9b1c1c;
+  --r:       10px;
+  --sidebar: 230px;
+}
+
+html, body { height: 100%; }
+body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); display: flex; min-height: 100vh; }
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar); background: var(--ink);
+  display: flex; flex-direction: column; padding: 1.75rem 1.25rem;
+  position: sticky; top: 0; height: 100vh; flex-shrink: 0; overflow-y: auto;
+}
+.logo { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: #fff; margin-bottom: 2rem; }
+.logo span { color: var(--gold); font-style: italic; }
+.logo-sub { font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-top: 2px; letter-spacing: 0.04em; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 0.7rem;
+  padding: 0.6rem 0.85rem; border-radius: var(--r);
+  color: rgba(255,255,255,0.55); font-size: 0.875rem;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+  margin-bottom: 0.2rem; border: none; background: none; width: 100%; text-align: left;
+}
+.nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.nav-item.active { background: rgba(255,255,255,0.13); color: #fff; }
+.nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+
+.nav-section { font-size: 0.65rem; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 0.1em; padding: 1.25rem 0.85rem 0.4rem; }
+
+/* History in sidebar */
+.hist-mini { display: flex; flex-direction: column; gap: 0.2rem; max-height: 300px; overflow-y: auto; }
+.hist-mini-item {
+  padding: 0.5rem 0.85rem; border-radius: var(--r); cursor: pointer;
+  font-size: 0.78rem; color: rgba(255,255,255,0.5);
+  transition: background 0.12s, color 0.12s; display: flex; align-items: center; gap: 0.5rem;
+}
+.hist-mini-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
+.hist-mini-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+.hist-mini-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-empty { font-size: 0.75rem; color: rgba(255,255,255,0.25); padding: 0.4rem 0.85rem; }
+
+/* ── Main ────────────────────────────────────────────────────────────── */
+.main { flex: 1; padding: 2rem 2.25rem; overflow-x: hidden; min-width: 0; }
+
+.page-header { margin-bottom: 1.75rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.9rem; color: var(--ink); line-height: 1.1; }
+.page-sub { font-size: 0.88rem; color: var(--ink-3); margin-top: 0.3rem; }
+
+/* ── Upload card ─────────────────────────────────────────────────────── */
+.upload-card {
+  background: #fff; border: 1.5px solid var(--border);
+  border-radius: 16px; padding: 1.75rem; margin-bottom: 1.75rem;
+}
+.upload-zone {
+  border: 1.5px dashed var(--border); border-radius: var(--r);
+  padding: 2.25rem; text-align: center; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s; background: var(--surface);
+  position: relative;
+}
+.upload-zone:hover, .upload-zone.dragover { background: #f0fdf4; border-color: var(--accent); }
+.upload-icon { font-size: 2.25rem; margin-bottom: 0.6rem; }
+.upload-title { font-size: 0.95rem; font-weight: 500; margin-bottom: 0.25rem; }
+.upload-sub { font-size: 0.8rem; color: var(--ink-3); }
+.upload-actions { display: flex; align-items: center; gap: 1rem; margin-top: 1.25rem; flex-wrap: wrap; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  border: none; border-radius: var(--r); padding: 0.65rem 1.25rem;
+  font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 500;
+  cursor: pointer; transition: background 0.15s, opacity 0.15s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-l); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-ghost { background: var(--surface); color: var(--ink-2); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--border); }
+
+.file-badge {
+  display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem;
+  color: var(--accent); background: #f0fdf4; padding: 0.35rem 0.75rem;
+  border-radius: 20px; border: 1px solid #bbf7d0; max-width: 220px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.status-msg { font-size: 0.82rem; color: var(--ink-3); }
+.status-msg.err { color: var(--danger); }
+
+.spin { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Metrics ─────────────────────────────────────────────────────────── */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.metric { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.25rem; }
+.metric-label { font-size: 0.72rem; font-weight: 500; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem; }
+.metric-value { font-size: 1.5rem; font-weight: 300; color: var(--ink); line-height: 1.1; }
+.metric-sub { font-size: 0.72rem; color: var(--ink-3); margin-top: 0.2rem; }
+.metric.dark { background: var(--ink); border-color: var(--ink); }
+.metric.dark .metric-label, .metric.dark .metric-sub { color: rgba(255,255,255,0.45); }
+.metric.dark .metric-value { color: #fff; }
+
+/* ── Insight ─────────────────────────────────────────────────────────── */
+.insight-card {
+  background: linear-gradient(120deg, #0f1117 0%, #1a3d2a 100%);
+  border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; color: #fff;
+  display: flex; align-items: flex-start; gap: 1rem;
+}
+.insight-icon { font-size: 1.3rem; margin-top: 1px; flex-shrink: 0; }
+.insight-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.4); margin-bottom: 0.35rem; }
+.insight-text { font-size: 0.9rem; line-height: 1.65; color: rgba(255,255,255,0.82); }
+
+/* ── Charts row ──────────────────────────────────────────────────────── */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; }
+.card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 1.4rem; }
+.card-title { font-size: 0.72rem; font-weight: 500; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1.25rem; }
+
+/* Pie legend */
+.pie-legend { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; max-height: 180px; overflow-y: auto; }
+.legend-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; }
+.legend-left { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.legend-swatch { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+.legend-cat { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.legend-right { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+.legend-pct { color: var(--ink-3); font-size: 0.73rem; }
+.legend-amt { color: var(--ink); font-weight: 500; }
+
+/* Top 5 */
+.top5 { display: flex; flex-direction: column; gap: 0.9rem; }
+.t5-row { display: flex; align-items: center; gap: 0.8rem; }
+.t5-rank { width: 22px; height: 22px; border-radius: 50%; background: var(--surface); font-size: 0.7rem; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--ink-2); }
+.t5-rank.gold { background: #fef9c3; color: #92400e; }
+.t5-info { flex: 1; min-width: 0; }
+.t5-name { font-size: 0.82rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t5-cat { font-size: 0.72rem; color: var(--ink-3); }
+.t5-bar-bg { height: 4px; border-radius: 3px; background: var(--surface); margin-top: 4px; overflow: hidden; }
+.t5-bar { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.t5-amt { font-size: 0.82rem; font-weight: 500; color: var(--ink); white-space: nowrap; }
+
+/* Bar chart */
+.bar-card { margin-bottom: 1.5rem; }
+
+/* ── Util ────────────────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+#results { animation: fadeUp 0.3s ease; }
+@keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+@media (max-width: 860px) { .charts-row { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .sidebar { display: none; } .main { padding: 1.25rem; } }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div>
+    <div class="logo">Fin<span>Sight</span><div class="logo-sub">Bank Statement Analyzer</div></div>
+    <button class="nav-item active" onclick="scrollToUpload()"><span class="nav-icon">📊</span> Analyze</button>
+    <div class="nav-section">This session</div>
+    <div class="hist-mini" id="sidebar-history">
+      <div class="hist-empty">No analyses yet</div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+  <div class="page-header">
+    <div class="page-title">Bank Statement Analyzer</div>
+    <div class="page-sub">Upload any PDF bank statement — get instant expense breakdown & insights</div>
+  </div>
+
+  <!-- Upload -->
+  <div class="upload-card" id="upload-card">
+    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('pdf-input').click()">
+      <div class="upload-icon">📄</div>
+      <div class="upload-title">Drop your bank statement here</div>
+      <div class="upload-sub">PDF format · click to browse · max 20 MB</div>
+      <input type="file" id="pdf-input" accept="application/pdf" style="display:none">
+    </div>
+    <div class="upload-actions">
+      <button class="btn btn-primary" id="analyze-btn" disabled onclick="analyze()">
+        <span class="spin hidden" id="spin"></span>
+        <span id="btn-txt">Analyze statement</span>
+      </button>
+      <span id="file-badge" class="file-badge hidden"></span>
+      <span class="status-msg" id="status-msg"></span>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results" class="hidden">
+    <!-- Metrics -->
+    <div class="metrics" id="metric-cards"></div>
+
+    <!-- Insight -->
+    <div class="insight-card" id="insight-card">
+      <div class="insight-icon">💡</div>
+      <div>
+        <div class="insight-label">AI Insight</div>
+        <div class="insight-text" id="insight-text"></div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title">Spending breakdown</div>
+        <div style="position:relative;height:210px"><canvas id="pieChart" role="img" aria-label="Pie chart of expense categories"></canvas></div>
+        <div class="pie-legend" id="pie-legend"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top 5 transactions</div>
+        <div class="top5" id="top5"></div>
+      </div>
+    </div>
+
+    <!-- Bar chart -->
+    <div class="card bar-card">
+      <div class="card-title">All categories — amount comparison</div>
+      <div id="bar-wrap" style="position:relative;height:260px"><canvas id="barChart" role="img" aria-label="Bar chart of all expense categories"></canvas></div>
+    </div>
+
+    <!-- New analysis button -->
+    <button class="btn btn-ghost" onclick="resetForm()" style="margin-bottom:2rem">↑ Analyze another statement</button>
+  </div>
+
+</main>
+
+<script>
+const API = '';  // same origin; change to http://localhost:8000 for local dev with separate servers
+const COLORS = ['#1a472a','#b8860b','#185FA5','#993C1D','#533AB7','#3B6D11','#854F0B','#993556','#5F5E5A','#0C447C'];
+
+let selectedFile = null;
+let pieInst = null, barInst = null;
+let sessionHistory = []; // stored in memory for this session
+
+// ── File handling ──────────────────────────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if (f?.type === 'application/pdf') setFile(f);
+  else setStatus('Please drop a PDF file.', true);
+});
+document.getElementById('pdf-input').addEventListener('change', e => {
+  if (e.target.files[0]) setFile(e.target.files[0]);
+});
+
+function setFile(f) {
+  selectedFile = f;
+  const badge = document.getElementById('file-badge');
+  badge.textContent = '📎 ' + f.name;
+  badge.classList.remove('hidden');
+  document.getElementById('analyze-btn').disabled = false;
+  setStatus('');
+}
+
+function setStatus(msg, isErr) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg' + (isErr ? ' err' : '');
+}
+
+function setLoading(on) {
+  document.getElementById('spin').classList.toggle('hidden', !on);
+  document.getElementById('btn-txt').textContent = on ? 'Analyzing…' : 'Analyze statement';
+  document.getElementById('analyze-btn').disabled = on;
+}
+
+// ── Analyze ────────────────────────────────────────────────────────────────
+async function analyze() {
+  if (!selectedFile) return;
+  setLoading(true);
+  setStatus('Uploading & analyzing with AI…');
+  document.getElementById('results').classList.add('hidden');
+
+  try {
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+    const res = await fetch(API + '/api/analyze', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Analysis failed');
+    setStatus('');
+    renderResults(data);
+    addToHistory(data);
+  } catch (err) {
+    setStatus(err.message, true);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ── Render dashboard ───────────────────────────────────────────────────────
+function fmt(n, cur) {
+  return (cur ? cur + ' ' : '') + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderResults(d) {
+  const cats  = d.categories || [];
+  const top5  = d.top5 || [];
+  const total = d.total_debits || 0;
+  const cur   = d.currency || '';
+
+  // Metric cards
+  const topCat = cats[0] || {};
+  document.getElementById('metric-cards').innerHTML = `
+    <div class="metric dark">
+      <div class="metric-label">Total debits</div>
+      <div class="metric-value">${fmt(total, cur)}</div>
+      <div class="metric-sub">${d.period || 'This period'}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total credits</div>
+      <div class="metric-value">${fmt(d.total_credits, cur)}</div>
+      <div class="metric-sub">Incoming</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Categories</div>
+      <div class="metric-value">${cats.length}</div>
+      <div class="metric-sub">spending types found</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Biggest category</div>
+      <div class="metric-value" style="font-size:1.05rem;padding-top:2px">${topCat.name || '—'}</div>
+      <div class="metric-sub">${fmt(topCat.amount, cur)} · ${(topCat.percentage || 0).toFixed(1)}%</div>
+    </div>
+  `;
+
+  // Insight
+  if (d.insights) {
+    document.getElementById('insight-text').textContent = d.insights;
+    document.getElementById('insight-card').classList.remove('hidden');
+  } else {
+    document.getElementById('insight-card').classList.add('hidden');
+  }
+
+  // Pie chart
+  if (pieInst) pieInst.destroy();
+  pieInst = new Chart(document.getElementById('pieChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: cats.map(c => c.name),
+      datasets: [{ data: cats.map(c => c.amount), backgroundColor: cats.map((_, i) => COLORS[i % COLORS.length]), borderWidth: 2, borderColor: '#fff', hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw, cur)} (${((ctx.raw / total) * 100).toFixed(1)}%)` } }
+      }
+    }
+  });
+
+  // Pie legend
+  document.getElementById('pie-legend').innerHTML = cats.slice(0, 8).map((c, i) => `
+    <div class="legend-row">
+      <div class="legend-left">
+        <div class="legend-swatch" style="background:${COLORS[i % COLORS.length]}"></div>
+        <span class="legend-cat">${c.name}</span>
+      </div>
+      <div class="legend-right">
+        <span class="legend-pct">${(c.percentage || (c.amount/total*100)).toFixed(1)}%</span>
+        <span class="legend-amt">${fmt(c.amount, cur)}</span>
+      </div>
+    </div>`).join('');
+
+  // Top 5
+  const maxAmt = top5.length ? top5[0].amount : 1;
+  document.getElementById('top5').innerHTML = top5.slice(0, 5).map((t, i) => `
+    <div class="t5-row">
+      <div class="t5-rank${i === 0 ? ' gold' : ''}">${i + 1}</div>
+      <div class="t5-info">
+        <div class="t5-name">${t.description}</div>
+        <div class="t5-cat">${t.category}${t.date ? ' · ' + t.date : ''}</div>
+        <div class="t5-bar-bg">
+          <div class="t5-bar" style="width:${Math.round((t.amount / maxAmt) * 100)}%;background:${COLORS[i]}"></div>
+        </div>
+      </div>
+      <div class="t5-amt">${fmt(t.amount, cur)}</div>
+    </div>`).join('');
+
+  // Bar chart
+  const barH = Math.max(240, cats.length * 40 + 60);
+  document.getElementById('bar-wrap').style.height = barH + 'px';
+  if (barInst) barInst.destroy();
+  barInst = new Chart(document.getElementById('barChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: cats.map(c => c.name),
+      datasets: [{ label: 'Amount', data: cats.map(c => c.amount), backgroundColor: cats.map((_, i) => COLORS[i % COLORS.length]), borderRadius: 5, borderSkipped: false }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw, cur)}` } }
+      },
+      scales: {
+        x: { ticks: { callback: v => cur + ' ' + Number(v).toLocaleString(), font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        y: { ticks: { font: { size: 12 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Session history (in-memory) ────────────────────────────────────────────
+function addToHistory(data) {
+  sessionHistory.unshift({ data, label: data.filename || 'Statement', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+  renderSidebarHistory();
+}
+
+function renderSidebarHistory() {
+  const container = document.getElementById('sidebar-history');
+  if (!sessionHistory.length) {
+    container.innerHTML = '<div class="hist-empty">No analyses yet</div>';
+    return;
+  }
+  container.innerHTML = sessionHistory.map((h, i) => `
+    <div class="hist-mini-item" onclick="reloadHistory(${i})">
+      <div class="hist-mini-dot"></div>
+      <div class="hist-mini-name" title="${h.label}">${h.label.replace(/\.pdf$/i, '')} <span style="opacity:0.5;font-size:0.7em">${h.time}</span></div>
+    </div>`).join('');
+}
+
+function reloadHistory(i) {
+  renderResults(sessionHistory[i].data);
+}
+
+function scrollToUpload() {
+  document.getElementById('upload-card').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetForm() {
+  selectedFile = null;
+  document.getElementById('pdf-input').value = '';
+  document.getElementById('file-badge').classList.add('hidden');
+  document.getElementById('analyze-btn').disabled = true;
+  setStatus('');
+  scrollToUpload();
+}
+</script>
+</body>
+</html>
