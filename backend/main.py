@@ -1,6 +1,6 @@
 """
 Bank Statement Analyzer - FastAPI Backend (Google Gemini)
-Run: uvicorn main:app --reload
+
 """
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -89,7 +89,6 @@ Bank statement text (first 14000 chars):
 {text[:14000]}"""
 
     try:
-        # model = genai.GenerativeModel("gemini-1.5-flash")
         model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
         raw = response.text.strip()
