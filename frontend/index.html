@@ -28,7 +28,7 @@
 html, body { height: 100%; }
 body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); display: flex; min-height: 100vh; }
 
-/* ── Sidebar ─────────────────────────────────────────────────────────── */
+/* Sidebar */
 .sidebar {
   width: var(--sidebar); background: var(--ink);
   display: flex; flex-direction: column; padding: 1.75rem 1.25rem;
@@ -63,14 +63,14 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 .hist-mini-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hist-empty { font-size: 0.75rem; color: rgba(255,255,255,0.25); padding: 0.4rem 0.85rem; }
 
-/* ── Main ────────────────────────────────────────────────────────────── */
+/* Main */
 .main { flex: 1; padding: 2rem 2.25rem; overflow-x: hidden; min-width: 0; }
 
 .page-header { margin-bottom: 1.75rem; }
 .page-title { font-family: 'DM Serif Display', serif; font-size: 1.9rem; color: var(--ink); line-height: 1.1; }
 .page-sub { font-size: 0.88rem; color: var(--ink-3); margin-top: 0.3rem; }
 
-/* ── Upload card ─────────────────────────────────────────────────────── */
+/* Upload card */
 .upload-card {
   background: #fff; border: 1.5px solid var(--border);
   border-radius: 16px; padding: 1.75rem; margin-bottom: 1.75rem;
@@ -111,7 +111,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Metrics ─────────────────────────────────────────────────────────── */
+/* Metrics */
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
 .metric { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.25rem; }
 .metric-label { font-size: 0.72rem; font-weight: 500; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem; }
@@ -121,7 +121,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 .metric.dark .metric-label, .metric.dark .metric-sub { color: rgba(255,255,255,0.45); }
 .metric.dark .metric-value { color: #fff; }
 
-/* ── Insight ─────────────────────────────────────────────────────────── */
+/* Insight  */
 .insight-card {
   background: linear-gradient(120deg, #0f1117 0%, #1a3d2a 100%);
   border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; color: #fff;
@@ -131,7 +131,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 .insight-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.4); margin-bottom: 0.35rem; }
 .insight-text { font-size: 0.9rem; line-height: 1.65; color: rgba(255,255,255,0.82); }
 
-/* ── Charts row ──────────────────────────────────────────────────────── */
+/* Charts row */
 .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; }
 .card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 1.4rem; }
 .card-title { font-size: 0.72rem; font-weight: 500; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1.25rem; }
@@ -161,7 +161,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 /* Bar chart */
 .bar-card { margin-bottom: 1.5rem; }
 
-/* ── Util ────────────────────────────────────────────────────────────── */
+/* Util */
 .hidden { display: none !important; }
 #results { animation: fadeUp 0.3s ease; }
 @keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
@@ -250,14 +250,14 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 </main>
 
 <script>
-const API = '';  // same origin; change to http://localhost:8000 for local dev with separate servers
+const API = '';  // same origin; need change to http://localhost:8000 for local dev with separate servers
 const COLORS = ['#1a472a','#b8860b','#185FA5','#993C1D','#533AB7','#3B6D11','#854F0B','#993556','#5F5E5A','#0C447C'];
 
 let selectedFile = null;
 let pieInst = null, barInst = null;
 let sessionHistory = []; // stored in memory for this session
 
-// ── File handling ──────────────────────────────────────────────────────────
+// File handling
 const dropZone = document.getElementById('drop-zone');
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
@@ -292,7 +292,7 @@ function setLoading(on) {
   document.getElementById('analyze-btn').disabled = on;
 }
 
-// ── Analyze ────────────────────────────────────────────────────────────────
+// Analyze 
 async function analyze() {
   if (!selectedFile) return;
   setLoading(true);
@@ -315,7 +315,7 @@ async function analyze() {
   }
 }
 
-// ── Render dashboard ───────────────────────────────────────────────────────
+// Render dashboard 
 function fmt(n, cur) {
   return (cur ? cur + ' ' : '') + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -431,7 +431,7 @@ function renderResults(d) {
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// ── Session history (in-memory) ────────────────────────────────────────────
+// Session history (in-memory) 
 function addToHistory(data) {
   sessionHistory.unshift({ data, label: data.filename || 'Statement', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
   renderSidebarHistory();

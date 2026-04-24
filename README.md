@@ -5,22 +5,6 @@ A full-stack web app to analyze bank statements with AI.
 
 ---
 
-## Project structure
-
-```
-bankanalyzer/
-├── backend/
-│   ├── main.py            ← FastAPI app (all backend logic)
-│   └── requirements.txt   ← Python dependencies
-├── frontend/
-│   ├── index.html         ← Login / Register page
-│   └── dashboard.html     ← Main dashboard (upload, charts, history)
-├── .env.example           ← Environment variables template
-└── README.md
-```
-
----
-
 ## Features
 
 - **PDF parsing** — pdfplumber extracts text from digital PDFs (not scanned)
@@ -34,5 +18,3 @@ bankanalyzer/
 ## Notes
 
 - Scanned/image PDFs won't work — only text-based PDFs (standard bank exports)
-- SQLite is zero-config and works on all platforms; swap for PostgreSQL for scale
-- The Anthropic API key is used server-side — never exposed to the browser

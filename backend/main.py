@@ -1,5 +1,5 @@
 """
-Bank Statement Analyzer - FastAPI Backend (No Auth)
+Bank Statement Analyzer - FastAPI Backend (Google Gemini)
 Run: uvicorn main:app --reload
 """
 
@@ -7,7 +7,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import anthropic
+import google.generativeai as genai
 import pdfplumber
 import json
 import os
@@ -15,8 +15,9 @@ import io
 from datetime import datetime
 from contextlib import asynccontextmanager
 
-# Config 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "your-api-key-here")
+#  Config 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "your-gemini-api-key-here")
+genai.configure(api_key=GEMINI_API_KEY)
 
 # App 
 @asynccontextmanager
@@ -56,10 +57,10 @@ async def analyze(file: UploadFile = File(...)):
     if len(text.strip()) < 50:
         raise HTTPException(400, "Could not extract text. Please use a text-based PDF (not a scanned image).")
 
-    # Claude AI analysis 
+    # Gemini AI analysis 
     prompt = f"""You are an expert bank statement analyzer. Analyze the following bank statement and identify ALL debit/expense transactions.
 
-Categorize them into groups such as: Food & Dining, Groceries, Transport, Utilities, Shopping, Entertainment, Healthcare, Education, Rent/Housing, Insurance, Subscriptions, ATM Withdrawals, Transfers, Fuel, Travel, Other.
+Categorize them into groups such as: Food & Dining, Groceries, Transport, Utilities, Shopping, Entertainment, Celebrations and Gifts, Healthcare, Education, Rent/Housing, Insurance, Subscriptions, ATM Withdrawals, Transfers, Fuel, Travel, Other.
 
 Return ONLY valid JSON, no markdown, no extra text:
 {{
@@ -88,13 +89,9 @@ Bank statement text (first 14000 chars):
 {text[:14000]}"""
 
     try:
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        message = client.messages.create(
-            model="claude-opus-4-5",
-            max_tokens=1500,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        raw = message.content[0].text.strip()
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        raw = response.text.strip()
         raw = raw.replace("```json", "").replace("```", "").strip()
         result = json.loads(raw)
     except json.JSONDecodeError:
